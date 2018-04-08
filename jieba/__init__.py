@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-__version__ = '0.39'
+__version__ = '0.40'
 __license__ = 'MIT'
 
 import re
@@ -34,14 +34,20 @@ DICT_WRITING = {}
 
 pool = None
 
-re_userdict = re.compile('^(.+?)( [0-9]+)?( [a-z]+)?$', re.U)
-
+#re_userdict = re.compile('^(.+?)( [0-9]+)?( [a-z]+)?$', re.U)
+re_userdict = re.compile('^(.+?),?([\s0-9]+)?,?([\sa-z]+)?$', re.U)
 re_eng = re.compile('[a-zA-Z0-9]', re.U)
 
 # \u4E00-\u9FD5a-zA-Z0-9+#&\._ : All non-space characters. Will be handled with re_han
 # \r\n|\s : whitespace characters. Will not be handled.
 re_han_default = re.compile("([\u4E00-\u9FD5a-zA-Z0-9+#&\._%]+)", re.U)
+re_han_default_no_eng = re.compile("([\u4E00-\u9FD5+#&\._%]+)", re.U)
 re_skip_default = re.compile("(\r\n|\s)", re.U)
+
+from string import punctuation
+re_skip_default_no_space = re.compile(
+    r"([\r\n\[\]\uFF1F-\uFF2D\uFF01-\uFF1E\u3001-\u30AD{}]+)"
+    .format(re.escape(punctuation)), re.U) 
 re_han_cut_all = re.compile("([\u4E00-\u9FD5]+)", re.U)
 re_skip_cut_all = re.compile("[^a-zA-Z0-9+#\n]", re.U)
 
@@ -74,7 +80,7 @@ class Tokenizer(object):
         for lineno, line in enumerate(f, 1):
             try:
                 line = line.strip().decode('utf-8')
-                word, freq = line.split(' ')[:2]
+                word, freq = line.split()[:2]
                 freq = int(freq)
                 lfreq[word] = freq
                 ltotal += freq
@@ -285,8 +291,8 @@ class Tokenizer(object):
             re_han = re_han_cut_all
             re_skip = re_skip_cut_all
         else:
-            re_han = re_han_default
-            re_skip = re_skip_default
+            re_han = re_han_default_no_eng
+            re_skip = re_skip_default_no_space
         if cut_all:
             cut_block = self.__cut_all
         elif HMM:
@@ -304,12 +310,10 @@ class Tokenizer(object):
                 tmp = re_skip.split(blk)
                 for x in tmp:
                     if re_skip.match(x):
-                        yield x
-                    elif not cut_all:
-                        for xx in x:
+                         for xx in x:
                             yield xx
                     else:
-                        yield x
+                        yield x.lstrip().rstrip()
 
     def cut_for_search(self, sentence, HMM=True):
         """
