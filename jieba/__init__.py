@@ -82,7 +82,7 @@ class Tokenizer(object):
         for lineno, line in enumerate(f, 1):
             try:
                 line = line.strip().decode('utf-8')
-                word, freq = line.split()[:2]
+                word, freq = line.split('@@')[:2]
                 freq = int(freq)
                 lfreq[word] = freq
                 ltotal += freq
