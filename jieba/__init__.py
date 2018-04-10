@@ -39,7 +39,7 @@ re_userdict = re.compile('^(.+?)@@([\s0-9]+)@@([\sa-z]+)?$', re.U)
 re_eng = re.compile('[a-zA-Z0-9\.]', re.U)
 
 #一定要有中文 或中文數字混雜
-re_han_default = re.compile("([ [0-9._-]*[\u4E00-\u9FD5\u00B7]+[0-9._-]*)", re.U)
+re_han_default = re.compile("([\u4E00-\u9FD5\u00B7]+[0-9\._-]*)", re.U)
 re_skip_default = re.compile("(\r\n|\s)", re.U)
 
 from string import punctuation
@@ -305,20 +305,16 @@ class Tokenizer(object):
         for blk in blocks:
             if not blk:
                 continue
-            if re_han.match(blk): #沒有英文就直接切
-                for word in cut_block(blk):
-                    yield word
-            else:
-                tmp = re_han.split(blk) #分開中英文
-                for x in tmp:
-                    if re_han.match(x): #處理中文的部分
-                        for word in cut_block(x):
-                            yield word
-                    elif re_skip.match(x): #標點符號
-                         for xx in x:
-                            yield xx
-                    else:
-                        yield x.lstrip().rstrip() #英文
+            tmp = re_han.split(blk)
+            for x in tmp: 
+                if re_han.match(x):
+                    for word in cut_block(x):
+                        yield word
+                elif re_skip.match(x):
+                    for xx in x:
+                        yield xx
+                else:
+                    yield x.lstrip().rstrip() #英文
 
     def cut_for_search(self, sentence, HMM=True):
         """
