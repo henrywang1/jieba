@@ -35,20 +35,22 @@ DICT_WRITING = {}
 pool = None
 
 #re_userdict = re.compile('^(.+?)( [0-9]+)?( [a-z]+)?$', re.U)
-re_userdict = re.compile('^(.+?),?([\s0-9]+)?,?([\sa-z]+)?$', re.U)
-re_eng = re.compile('[a-zA-Z0-9]', re.U)
+re_userdict = re.compile('^(.+?)@@([\s0-9]+)@@([\sa-z]+)?$', re.U)
+re_eng = re.compile('[a-zA-Z0-9\.]', re.U)
 
-# \u4E00-\u9FD5a-zA-Z0-9+#&\._ : All non-space characters. Will be handled with re_han
-# \r\n|\s : whitespace characters. Will not be handled.
-re_han_default = re.compile("([\u4E00-\u9FD5a-zA-Z0-9+#&\._%]+)", re.U)
-re_han_default_no_eng = re.compile("([\u4E00-\u9FD5+#&\._%]+)", re.U)
+#一定要有中文 或中文數字混雜
+re_han_default = re.compile("([ [0-9._-]*[\u4E00-\u9FD5\u00B7]+[0-9._-]*)", re.U)
 re_skip_default = re.compile("(\r\n|\s)", re.U)
 
 from string import punctuation
-re_skip_default_no_space = re.compile(
-    r"([\r\n\[\]\uFF1F-\uFF2D\uFF01-\uFF1E\u3001-\u30AD{}]+)"
-    .format(re.escape(punctuation)), re.U) 
-re_han_cut_all = re.compile("([\u4E00-\u9FD5]+)", re.U)
+all_punct = re.escape(punctuation)
+escape_items = ['\-', '_', '\.'] #有些符號有連接的意思
+for item in escape_items:
+    all_punct = all_punct.replace(item, '')
+re_skip_default_all_punct = re.compile(
+    r"([\r\n\uFF1F-\uFF2D\uFF01-\uFF1E\u3001-\u30AD{}]+)"
+    .format(all_punct), re.U)
+re_han_cut_all = re.compile("([\u4E00-\u9FD5\u00B7]+)", re.U) #\u00B7 is the big dot
 re_skip_cut_all = re.compile("[^a-zA-Z0-9+#\n]", re.U)
 
 def setLogLevel(log_level):
@@ -291,29 +293,32 @@ class Tokenizer(object):
             re_han = re_han_cut_all
             re_skip = re_skip_cut_all
         else:
-            re_han = re_han_default_no_eng
-            re_skip = re_skip_default_no_space
+            re_han = re_han_default
+            re_skip = re_skip_default_all_punct
         if cut_all:
             cut_block = self.__cut_all
         elif HMM:
             cut_block = self.__cut_DAG
         else:
             cut_block = self.__cut_DAG_NO_HMM
-        blocks = re_han.split(sentence)
+        blocks = re_skip.split(sentence)
         for blk in blocks:
             if not blk:
                 continue
-            if re_han.match(blk):
+            if re_han.match(blk): #沒有英文就直接切
                 for word in cut_block(blk):
                     yield word
             else:
-                tmp = re_skip.split(blk)
+                tmp = re_han.split(blk) #分開中英文
                 for x in tmp:
-                    if re_skip.match(x):
+                    if re_han.match(x): #處理中文的部分
+                        for word in cut_block(x):
+                            yield word
+                    elif re_skip.match(x): #標點符號
                          for xx in x:
                             yield xx
                     else:
-                        yield x.lstrip().rstrip()
+                        yield x.lstrip().rstrip() #英文
 
     def cut_for_search(self, sentence, HMM=True):
         """
