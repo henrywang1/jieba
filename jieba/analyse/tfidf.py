@@ -47,7 +47,7 @@ class IDFLoader(object):
             content = open(new_idf_path, 'rb').read().decode('utf-8')
             self.idf_freq = {}
             for line in content.splitlines():
-                word, freq = line.strip().split(' ')
+                word, freq = line.strip().split('@@')
                 self.idf_freq[word] = float(freq)
             self.median_idf = sorted(
                 self.idf_freq.values())[len(self.idf_freq) // 2]
