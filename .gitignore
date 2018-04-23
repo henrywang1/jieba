@@ -170,3 +170,14 @@ test/tmp/*
 *.class
 
 MANIFEST
+jieba-test.ipynb
+Changelog_
+RunTest.ipynb
+article_all.pickle
+generate_tf_idf.ipynb
+.ipynb_checkpoints/RunTest-checkpoint.ipynb
+.ipynb_checkpoints/jieba-test-checkpoint.ipynb
+.vscode/settings.json
+extra_dict/dict_with_cnt.txt
+extra_dict/ntub_stop_words.txt
+jieba/analyse/idf.txt
